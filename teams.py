@@ -6,8 +6,8 @@ import passwords
 import json
 import os
 cgitb.enable()
-
-ip = 'http://54.234.68.237'
+ 
+ip = 'http://3.95.226.35'
 
 conn = MySQLdb.connect(host   = passwords.SQL_HOST,
                         user   = passwords.SQL_USER,
@@ -19,8 +19,6 @@ cursor = conn.cursor()
 form = cgi.FieldStorage()
 
 
-
-
 if 'PATH_INFO' in os.environ:
 	path = os.environ['PATH_INFO']
 else:
@@ -30,9 +28,9 @@ else:
 
 if path == "":
 	print('Status: 302 Redirect')
-	print('Location: {}/cgi-bin/teams/'.format(ip))	
+	print('Location: %s/cgi-bin/teams/' % ip)	
 
-elif path ="/home":
+elif path =="/home":
 	print("Content-Type: text/html")
 	print("Status: 200 OK")
 	print()
@@ -44,9 +42,9 @@ elif path ="/home":
 	   </head>
 	   <h1> Home </h1>
 	   <body>
-	   	<a href="/cgi-bin/view">View teams</a>
+	   	<a href="/cgi-bin/teams/view">View teams</a>
 	   	<br>
-	   	<a href="/cgi-bin/add">Add a new team</a>
+	   	<a href="/cgi-bin/teams/add">Add a new team</a>
 	   </body>
 	</html>''')
 
@@ -56,11 +54,11 @@ elif path == '/add':
 		chips = form['chips'].value
 		city = form['city'].value
 
-		cursor.execute("INSERT INTO teams(name, city, championships) VALUES (%s,%s,%s)", (name,city,chips))
+		cursor.execute("INSERT INTO teams(team, city, championships) VALUES (%s,%s,%s)", (name,city,chips))
 		new_id = cursor.lastrowid
 		
 		print('Status: 302 Redirect')
-		print('Location: {}/cgi-bin/rest/{}'.format(ip,new_id))
+		print('Location: %s/cgi-bin/teams/%s' %(ip,new_id))
 	
 	elif 'name' in form or 'chips' in form or 'city' in form:
 		print("Content-Type: text/html")
@@ -75,7 +73,7 @@ elif path == '/add':
 		   <body>
 		      <h1>Add Team</h1>
 		      <center> Please fill all fields </center>
-		      <form action="%s/cgi-bin/teams/add" method="get">
+		      <form action="%s/cgi-bin/teams/add" method="post">
 		         Team Name: <br><input type="text" name="name"><br>
 		         City: <br><input type="text" name="city"><br>
 		         Number of Championships: <br><input type="text" name="chips"><br>
@@ -96,10 +94,10 @@ elif path == '/add':
 		   </head>
 		   <body>
 		      <h1>Add Team</h1>
-		      <form action="%s/cgi-bin/pets/add" method="get">
-		         Team Name <input type="text" name="name"><br>
-		         City <input type="text" name="city"><br>
-		         Number of Championships <input type="text" name="chips"><br>
+		      <form action="%s/cgi-bin/teams/add" method="post">
+		         Team Name <br><input type="text" name="name"><br>
+		         City <br><input type="text" name="city"><br>
+		         Number of Championships <br><input type="text" name="chips"><br>
 		         <input type="submit">
 		      </form>
 		   </body>
@@ -111,23 +109,24 @@ elif path=='/view':
 	cursor.execute("SELECT * FROM teams;")
 	results = cursor.fetchall()
 	formatted = []
-	for i in range(len(results)):
-		formatted.append({'id':i[0],'team':i[1],'championships':i[2],'url':ip+'/cgi-bin/teams/'+str(i[0])})
+	for i in results:
+		formatted.append({'id':i[0],'team':i[1],'city':i[2], 'championships':i[3],'url':ip+'/cgi-bin/teams/'+str(i[0])})
 	print('Content-Type: application/json')
 	print("Status: 200 OK")
 	print()
-	print(json.dumps(formatted))
+	print(json.dumps(formatted,indent=2))
 
 
 elif path[1:].isnumeric() == True:
-	results = cursor.execute('SELECT * FROM teams WHERE id=%s',(path[1:],))
-	formatted = []
-	for i in range(len(results)):
-		formatted.append({'id':i[0],'team':i[1],'championships':i[2],'url':ip+'/cgi-bin/teams/'+str(i[0])})
-	print('Content-Type: application/json')
-	print("Status: 200 OK")
-	print()
-	print(json.dumps(formatted))
+        cursor.execute("SELECT * FROM teams WHERE id=%s;",(path[1:],))
+        results = cursor.fetchall()
+        formatted = []
+        for i in results:
+                formatted.append({'id':i[0],'team':i[1],'city':i[2], 'championships':i[3],'url':ip+'/cgi-bin/teams/'+str(i[0])})
+        print('Content-Type: application/json')
+        print("Status: 200 OK")
+        print()
+        print(json.dumps(formatted,indent=2))
 
 
 else:
@@ -142,11 +141,11 @@ else:
 	   </head>
 	   <body>
 	   <center>Invalid path: %s</center>
-	   	<a href="/cgi-bin/view">View teams</a>
+	   	<a href="/cgi-bin/teams/view">View teams</a>
 	   	<br>
-	   	<a href="/cgi-bin/add">Add a new team</a>
+	   	<a href="/cgi-bin/teams/add">Add a new team</a>
 	   </body>
-	</html>''' % (path,))
+	</html>''' % path)
 
 
 
@@ -155,5 +154,5 @@ else:
 
 
 cursor.close()
-con.commit()
+conn.commit()
 
